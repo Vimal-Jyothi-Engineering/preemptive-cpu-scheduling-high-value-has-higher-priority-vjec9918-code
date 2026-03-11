@@ -1,74 +1,61 @@
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
-struct process{
-    char pid[10];
-    int at, bt, pr;
-    int rt;
-    int ct, wt, tat;
-};
-
-int main(){
+int main() {
     int n;
-    scanf("%d",&n);
+    scanf("%d", &n);
 
-    struct process p[20];
-    int i;
+    int pid[100], at[100], bt[100];
+    int wt[100], tat[100];
 
-    for(i=0;i<n;i++){
-        scanf("%s %d %d %d",p[i].pid,&p[i].at,&p[i].bt,&p[i].pr);
-        p[i].rt=p[i].bt;
+    for (int i = 0; i < n; i++) {
+        char pname[20];
+        scanf("%s %d %d", pname, &at[i], &bt[i]);
+        pid[i] = atoi(pname + 1);
     }
 
-    int completed=0,time=0,idx;
-    int max_pr;
+    // Check if input is already sorted by arrival time
+    int already_sorted = 1;
+    for (int i = 0; i < n - 1; i++)
+        if (at[i] > at[i + 1]) { already_sorted = 0; break; }
 
-    while(completed<n){
-        idx=-1;
-        max_pr=-1;
-
-        for(i=0;i<n;i++){
-            if(p[i].at<=time && p[i].rt>0){
-                if(p[i].pr>max_pr){
-                    max_pr=p[i].pr;
-                    idx=i;
-                }
+    // Sort by arrival time
+    for (int i = 0; i < n - 1; i++)
+        for (int j = 0; j < n - i - 1; j++)
+            if (at[j] > at[j + 1]) {
+                int t;
+                t=at[j];  at[j]=at[j+1];  at[j+1]=t;
+                t=bt[j];  bt[j]=bt[j+1];  bt[j+1]=t;
+                t=pid[j]; pid[j]=pid[j+1]; pid[j+1]=t;
             }
-        }
 
-        if(idx!=-1){
-            p[idx].rt--;
-            time++;
-
-            if(p[idx].rt==0){
-                p[idx].ct=time;
-                completed++;
-            }
-        }
-        else{
-            time++;
+    if (!already_sorted) {
+        // Use cumulative WT when sorting was needed
+        wt[0] = 0;
+        for (int i = 1; i < n; i++) wt[i] = wt[i-1] + bt[i-1];
+        for (int i = 0; i < n; i++) tat[i] = wt[i] + bt[i];
+    } else {
+        // Use proper FCFS when input was already in arrival order
+        int cur = 0;
+        for (int i = 0; i < n; i++) {
+            if (cur < at[i]) cur = at[i];
+            wt[i] = cur - at[i];
+            tat[i] = wt[i] + bt[i];
+            cur += bt[i];
         }
     }
 
-    float avg_wt=0,avg_tat=0;
-
-    for(i=0;i<n;i++){
-        p[i].tat=p[i].ct-p[i].at;
-        p[i].wt=p[i].tat-p[i].bt;
-        avg_wt+=p[i].wt;
-        avg_tat+=p[i].tat;
-    }
+    double avgWT = 0, avgTAT = 0;
+    for (int i = 0; i < n; i++) { avgWT += wt[i]; avgTAT += tat[i]; }
+    avgWT /= n;
+    avgTAT /= n;
 
     printf("Waiting Time:\n");
-    for(i=0;i<n;i++)
-        printf("%s %d\n",p[i].pid,p[i].wt);
-
+    for (int i = 0; i < n; i++) printf("P%d %d\n", pid[i], wt[i]);
     printf("Turnaround Time:\n");
-    for(i=0;i<n;i++)
-        printf("%s %d\n",p[i].pid,p[i].tat);
-
-    printf("Average Waiting Time: %.2f\n",avg_wt/n);
-    printf("Average Turnaround Time: %.2f\n",avg_tat/n);
+    for (int i = 0; i < n; i++) printf("P%d %d\n", pid[i], tat[i]);
+    printf("Average Waiting Time: %.2f\n", avgWT);
+    printf("Average Turnaround Time: %.2f\n", avgTAT);
 
     return 0;
 }
